@@ -38,8 +38,8 @@ movingMask=sitk.ReadImage(movingMaskFilename, sitk.sitkFloat32)
 
 # set output file
 
-outputTransform = '/Users/peterbehringer/MyTesting/OutTrans_Affine_3.h5'
-outputVolume = '/Users/peterbehringer/MyTesting/OutTrans_Affine_3.nrrd'
+outputTransform = '/Users/peterbehringer/MyTesting/SimpleITK_Tests/OutTrans_Affine.h5'
+outputVolume = '/Users/peterbehringer/MyTesting/SimpleITK_Tests/OutVol_Affine.nrrd'
 
 
 # perform Affine Transformation
