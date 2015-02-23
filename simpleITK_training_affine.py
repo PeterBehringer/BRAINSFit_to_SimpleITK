@@ -1,6 +1,6 @@
 import os
 import SimpleITK as sitk
-import Slicer
+import slicer
 
 
 def command_iteration(method) :
@@ -22,8 +22,8 @@ def prepare_resampled_values(fixed,moving,transform):
 
 # read input volumes
 
-fixedImageFilename = '/Users/peterbehringer/MyImageData/ProstateRegistrationValidation/Images/Case1-t2ax-N4.nrrd'
-movingImageFilename= '/Users/peterbehringer/MyImageData/ProstateRegistrationValidation/Images/Case1-t2ax.nrrd'
+fixedImageFilename = '/Users/peterbehringer/MyImageData/ProstateRegistrationValidation/Images/Case1-t2ax-intraop.nrrd'
+movingImageFilename= '/Users/peterbehringer/MyImageData/ProstateRegistrationValidation/Images/Case1-t2ax-N4.nrrd'
 
 fixedVolume=sitk.ReadImage(fixedImageFilename, sitk.sitkFloat32)
 movingVolume=sitk.ReadImage(movingImageFilename, sitk.sitkFloat32)
@@ -33,64 +33,63 @@ movingVolume=sitk.ReadImage(movingImageFilename, sitk.sitkFloat32)
 fixedMaskFilename = '/Users/peterbehringer/MyImageData/ProstateRegistrationValidation/Segmentations/Rater1/Case1-t2ax-intraop-TG-rater1.nrrd'
 movingMaskFilename= '/Users/peterbehringer/MyImageData/ProstateRegistrationValidation/Segmentations/Rater1/Case1-t2ax-TG-rater1.nrrd'
 
-fixedMask=sitk.ReadImage(fixedMaskFilename)
-movingMask=sitk.ReadImage(movingMaskFilename)
+fixedMask=sitk.ReadImage(fixedMaskFilename, sitk.sitkFloat32)
+movingMask=sitk.ReadImage(movingMaskFilename, sitk.sitkFloat32)
 
 # set output file
 
-outputRegistrationTransform = '/Users/peterbehringer/MyTesting/OutTrans_Affine.h5'
+outputTransform = '/Users/peterbehringer/MyTesting/OutTrans_Affine_3.h5'
+outputVolume = '/Users/peterbehringer/MyTesting/OutTrans_Affine_3.nrrd'
 
 
 # perform Affine Transformation
 # _______________________________
 
-
-tx1 = sitk.AffineTransform(fixedVolume.GetDimension())
+tx1 = sitk.CenteredVersorTransformInitializer(fixedVolume, movingVolume, sitk.VersorRigid3DTransform())
 
 ctx = sitk.Transform(tx1) # Set composite transform
                           # This composite transform is update at each stage
                           # and finally will be considered as the output of
                           # the registration process since the InPlace is TRUE.
 ctx.SetFixedParameters(ctx.GetFixedParameters()) # hack to force deep copy, as registion is done in place..
-
-
 # Set the registration filter
 R = sitk.ImageRegistrationMethod()
-R.SetMetricAsJointHistogramMutualInformation()
-R.SetOptimizerAsGradientDescent(learningRate=1.0,
-                                numberOfIterations=100,
-                                convergenceMinimumValue = 1e-6,
-                                convergenceWindowSize = 10,
-                                estimateLearningRate = R.EachIteration,
-                                maximumStepSizeInPhysicalUnits = 1.0)
-R.SetOptimizerScalesFromPhysicalShift()
-R.SetShrinkFactorsPerLevel([3,2,1])
-R.SetSmoothingSigmasPerLevel([2,1,1])
+R.SetMetricAsMattesMutualInformation( 200 )
+R.SetOptimizerAsRegularStepGradientDescent(learningRate =0.5,
+                                           minStep=1e-2,
+                                           numberOfIterations=250,
+                                           gradientMagnitudeTolerance=1e-4,
+                                           estimateLearningRate=R.Never)
+R.SetOptimizerScales([1, 1, 1, 1.0/250, 1.0/250, 1.0/250])
+R.SetShrinkFactorsPerLevel([1])
+R.SetSmoothingSigmasPerLevel([0])
 R.SetInitialTransform(ctx)
 R.SetInterpolator(sitk.sitkLinear)
 R.SetMetricSamplingPercentage(0.5)
 R.SetMetricSamplingStrategy(R.RANDOM)
-R.RemoveAllCommands()
+
+# Execute
 R.AddCommand( sitk.sitkIterationEvent, lambda: command_iteration(R) )
-affineOut = R.Execute(fixedVolume,movingVolume)
+affineOut = R.Execute(sitk.Cast(fixedVolume,sitk.sitkFloat32), sitk.Cast(movingVolume,sitk.sitkFloat32))
 
-sitk.WriteTransform(affineOut,outputRegistrationTransform)
+# Write the transform
+sitk.WriteTransform(affineOut,outputTransform)
 
 
-"""
-def transformVolumes(fiducialsIn, transform, fiducialsOut):
-  ### done in Slicer!
-  fidLogic = slicer.modules.markups.logic()
-  tfmLogic = slicer.modules.transforms.logic()
-  fidId = fidLogic.LoadMarkupsFiducials(fiducialsIn, 'na')
-  print 'Fiducials loaded:',fidId
-  fid = slicer.mrmlScene.GetNodeByID(fidId)
-  tfm = tfmLogic.AddTransform(transform, slicer.mrmlScene)
-  fid.SetAndObserveTransformNodeID(tfm.GetID())
-  tfmLogic.hardenTransform(fid)
+# perform volume transformation
+print ('perform volume transformation')
 
-  fidStorage = fid.GetStorageNode()
-  fidStorage.SetFileName(fiducialsOut)
-  fidStorage.WriteData(fid)
-  #slicer.mrmlScene.Clear()
-"""
+slicer.mrmlScene.Clear(0)
+tfmLogic = slicer.modules.transforms.logic()
+vlmLogic=slicer.modules.volumes.logic()
+
+
+volume=vlmLogic.AddArchetypeVolume('/Users/peterbehringer/MyImageData/ProstateRegistrationValidation/Images/Case1-t2ax-N4.nrrd','volume',4)
+volumeNode=slicer.mrmlScene.GetNodesByClass('vtkMRMLScalarVolumeNode').GetItemAsObject(0)
+
+transform=tfmLogic.AddTransform(outputTransform,slicer.mrmlScene)
+
+volumeNode.SetAndObserveTransformNodeID(transform.GetID())
+tfm = tfmLogic.AddTransform(outputTransform, slicer.mrmlScene)
+
+tfmLogic.hardenTransform(volumeNode)
