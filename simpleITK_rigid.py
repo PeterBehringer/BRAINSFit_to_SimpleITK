@@ -53,42 +53,43 @@ outputTransform_Initializer = '/Users/peterbehringer/MyTesting/SimpleITK_Tests/O
 # _______________________________
 
 # Initialize Rigid Transform by
-tx1 = sitk.CenteredVersorTransformInitializer(fixedVolume, movingVolume, sitk.VersorRigid3DTransform())
-initialTrans = sitk.Transform(tx1)
-initialTrans.SetFixedParameters(tx1.GetFixedParameters())
+transformForInitializer=sitk.VersorRigid3DTransform()
+initializer=sitk.CenteredTransformInitializer(fixedMask,movingMask,transformForInitializer)
+initialTrans = sitk.Transform(initializer)
+initialTrans.SetFixedParameters(initializer.GetFixedParameters())
 
 # write initial Transform
 sitk.WriteTransform(initialTrans,outputTransform_Initializer)
 
 # create ImageRegistrationMethod
-R = sitk.ImageRegistrationMethod()
+Reg = sitk.ImageRegistrationMethod()
 
 # set initial Transform for initial moving Transform
-R.SetMovingInitialTransform(initialTrans)
+Reg.SetMovingInitialTransform(initialTrans)
 
 # create rigid composite transform
 compositeTrans=sitk.VersorRigid3DTransform()
-R.SetInitialTransform(compositeTrans)
+Reg.SetInitialTransform(compositeTrans)
 
 # Set the Metric as MMI
-R.SetMetricAsMattesMutualInformation( 200 )
-R.SetOptimizerAsRegularStepGradientDescent(learningRate =1.0,
+Reg.SetMetricAsMattesMutualInformation( 200 )
+Reg.SetOptimizerAsRegularStepGradientDescent(learningRate =1.0,
                                            minStep=1e-3,
                                            numberOfIterations=250,
                                            gradientMagnitudeTolerance=1e-4,
                                            estimateLearningRate=R.Never)
-R.SetOptimizerScales([1, 1, 1, 1.0/250, 1.0/250, 1.0/250])
+Reg.SetOptimizerScales([1, 1, 1, 1.0/250, 1.0/250, 1.0/250])
 
 # set linear Interpolator
-R.SetInterpolator(sitk.sitkLinear)
-R.SetMetricSamplingPercentage(0.5)
-R.SetMetricSamplingStrategy(R.RANDOM)
-R.SetShrinkFactorsPerLevel([1])
-R.SetSmoothingSigmasPerLevel([0])
+Reg.SetInterpolator(sitk.sitkLinear)
+Reg.SetMetricSamplingPercentage(0.5)
+Reg.SetMetricSamplingStrategy(R.RANDOM)
+Reg.SetShrinkFactorsPerLevel([1])
+Reg.SetSmoothingSigmasPerLevel([0])
 
 # execute
-R.RemoveAllCommands()
-R.AddCommand( sitk.sitkIterationEvent, lambda: command_iteration(R) )
+Reg.RemoveAllCommands()
+RegAddCommand( sitk.sitkIterationEvent, lambda: command_iteration(Reg ))
 outTx = R.Execute(sitk.Cast(fixedVolume,sitk.sitkFloat32), sitk.Cast(movingVolume,sitk.sitkFloat32))
 
 # Write the transform
