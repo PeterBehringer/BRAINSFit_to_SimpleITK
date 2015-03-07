@@ -71,6 +71,9 @@ Reg.SetMovingInitialTransform(initialTrans)
 compositeTrans=sitk.VersorRigid3DTransform()
 Reg.SetInitialTransform(compositeTrans)
 
+# Sparse Search
+# Calculate similarity metric - how to do in simpleITK?
+
 # Set the Metric as MMI
 Reg.SetMetricAsMattesMutualInformation( 200 )
 Reg.SetOptimizerAsRegularStepGradientDescent(learningRate =1.0,
