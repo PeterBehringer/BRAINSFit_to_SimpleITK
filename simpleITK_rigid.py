@@ -80,20 +80,20 @@ Reg.SetOptimizerAsRegularStepGradientDescent(learningRate =1.0,
                                            minStep=1e-3,
                                            numberOfIterations=250,
                                            gradientMagnitudeTolerance=1e-4,
-                                           estimateLearningRate=R.Never)
+                                           estimateLearningRate=Reg.Never)
 Reg.SetOptimizerScales([1, 1, 1, 1.0/250, 1.0/250, 1.0/250])
 
 # set linear Interpolator
 Reg.SetInterpolator(sitk.sitkLinear)
 Reg.SetMetricSamplingPercentage(0.5)
-Reg.SetMetricSamplingStrategy(R.RANDOM)
+Reg.SetMetricSamplingStrategy(Reg.RANDOM)
 Reg.SetShrinkFactorsPerLevel([1])
 Reg.SetSmoothingSigmasPerLevel([0])
 
 # execute
 Reg.RemoveAllCommands()
-RegAddCommand( sitk.sitkIterationEvent, lambda: command_iteration(Reg ))
-outTx = R.Execute(sitk.Cast(fixedVolume,sitk.sitkFloat32), sitk.Cast(movingVolume,sitk.sitkFloat32))
+Reg.AddCommand(sitk.sitkIterationEvent, lambda: command_iteration(Reg))
+outTx = Reg.Execute(sitk.Cast(fixedVolume,sitk.sitkFloat32), sitk.Cast(movingVolume,sitk.sitkFloat32))
 
 # Write the transform
 sitk.WriteTransform(outTx,outputTransform)
