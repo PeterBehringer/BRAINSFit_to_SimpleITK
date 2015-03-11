@@ -4,6 +4,7 @@ import slicer
 from math import pi
 import numpy as np
 
+
 # read input volumes
 
 fixedImageFilename = '/Users/peterbehringer/MyImageData/ProstateRegistrationValidation/Images/Case1-t2ax-intraop.nrrd'
@@ -58,6 +59,7 @@ sitk.WriteTransform(eulerTrans,eulerTransPath)
 
 
 # ROTATE & MEASURE METRIC
+# https://github.com/BRAINSia/BRAINSTools/blob/19fa37dfbdee37deff4ccee412bb601f7a787bda/BRAINSCommonLib/BRAINSFitHelperTemplate.hxx#L325-L339
 # _______________________________
 
 one_degree=1.0*pi/180.0
