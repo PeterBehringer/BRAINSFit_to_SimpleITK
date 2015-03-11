@@ -2,5 +2,10 @@ simpleITK_training_2.py
 simpleITK_training_3.py
 simpleITK_training_4.py
 simpleITK_training_affine.py
+simpleITK_rigid-newExample.py
+RotationTest.py
+EulerRotation.py
+
+
 
 .gitignore.save

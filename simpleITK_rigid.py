@@ -44,19 +44,19 @@ movingMask=sitk.ReadImage(movingMaskFilename, sitk.sitkFloat32)
 
 # set output file
 
-outputTransform = '/Users/peterbehringer/MyTesting/SimpleITK_Tests/OutTrans_Rigid_1.h5'
-outputVolume = '/Users/peterbehringer/MyTesting/SimpleITK_Tests/OutVol_Rigid_1.nrrd'
-outputTransform_Initializer = '/Users/peterbehringer/MyTesting/SimpleITK_Tests/OutTrans_Initializer_Rigid__1.h5'
+outputTransform = '/Users/peterbehringer/MyTesting/SimpleITK_Tests/TESTOutTrans_Rigid_1TEST.h5'
+outputVolume = '/Users/peterbehringer/MyTesting/SimpleITK_Tests/TESTOutVol_Rigid_1TEST.nrrd'
+outputTransform_Initializer = '/Users/peterbehringer/MyTesting/SimpleITK_Tests/TESTOutTrans_Initializer_Rigid__1TEST.h5'
 
 
-# COMPUTE RIGID REGISTRATION
+# COMPUTE RIGID REGISTRATION # failes in z-direction,
 # _______________________________
 
 # Initialize Rigid Transform by
 transformForInitializer=sitk.VersorRigid3DTransform()
 initializer=sitk.CenteredTransformInitializer(fixedMask,movingMask,transformForInitializer)
 initialTrans = sitk.Transform(initializer)
-initialTrans.SetFixedParameters(initializer.GetFixedParameters())
+# initialTrans.SetFixedParameters(initializer.GetFixedParameters())
 
 # write initial Transform
 sitk.WriteTransform(initialTrans,outputTransform_Initializer)
@@ -65,11 +65,11 @@ sitk.WriteTransform(initialTrans,outputTransform_Initializer)
 Reg = sitk.ImageRegistrationMethod()
 
 # set initial Transform for initial moving Transform
-Reg.SetMovingInitialTransform(initialTrans)
+Reg.SetInitialTransform(initialTrans)
 
 # create rigid composite transform
-compositeTrans=sitk.VersorRigid3DTransform()
-Reg.SetInitialTransform(compositeTrans)
+# compositeTrans=sitk.VersorRigid3DTransform()
+# Reg.SetInitialTransform(compositeTrans)
 
 # Sparse Search
 # Calculate similarity metric - how to do in simpleITK?
@@ -78,7 +78,7 @@ Reg.SetInitialTransform(compositeTrans)
 Reg.SetMetricAsMattesMutualInformation( 200 )
 Reg.SetOptimizerAsRegularStepGradientDescent(learningRate =1.0,
                                            minStep=1e-3,
-                                           numberOfIterations=250,
+                                           numberOfIterations=100,
                                            gradientMagnitudeTolerance=1e-4,
                                            estimateLearningRate=Reg.Never)
 Reg.SetOptimizerScales([1, 1, 1, 1.0/250, 1.0/250, 1.0/250])
@@ -93,7 +93,7 @@ Reg.SetSmoothingSigmasPerLevel([0])
 # execute
 Reg.RemoveAllCommands()
 Reg.AddCommand(sitk.sitkIterationEvent, lambda: command_iteration(Reg))
-outTx = Reg.Execute(sitk.Cast(fixedVolume,sitk.sitkFloat32), sitk.Cast(movingVolume,sitk.sitkFloat32))
+outTx = Reg.Execute(fixedVolume, movingVolume)
 
 # Write the transform
 sitk.WriteTransform(outTx,outputTransform)
@@ -105,7 +105,7 @@ slicer.mrmlScene.Clear(0)
 tfmLogic = slicer.modules.transforms.logic()
 vlmLogic=slicer.modules.volumes.logic()
 
-volume=vlmLogic.AddArchetypeVolume('/Users/peterbehringer/MyImageData/ProstateRegistrationValidation/Images/Case1-t2ax-N4.nrrd','outputVolume1',4)
+volume=vlmLogic.AddArchetypeVolume('/Users/peterbehringer/MyImageData/ProstateRegistrationValidation/Images/Case1-t2ax-N4.nrrd','TEST Registration Result',4)
 volumeNode=slicer.mrmlScene.GetNodesByClass('vtkMRMLScalarVolumeNode').GetItemAsObject(0)
 
 transform=tfmLogic.AddTransform(outputTransform,slicer.mrmlScene)
