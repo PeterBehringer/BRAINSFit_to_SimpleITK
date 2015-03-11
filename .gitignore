@@ -5,7 +5,7 @@ simpleITK_training_affine.py
 simpleITK_rigid-newExample.py
 RotationTest.py
 EulerRotation.py
-
+EulerRotation-Training.py
 
 
 .gitignore.save
