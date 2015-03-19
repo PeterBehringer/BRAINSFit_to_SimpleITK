@@ -49,7 +49,7 @@ outTxAfterRigidPath='/Users/peterbehringer/MyTesting/SimpleITK_Tests/outTxAfterR
 Reg=sitk.ImageRegistrationMethod()
 Reg.SetMetricFixedMask(fixedMask)
 Reg.SetMetricMovingMask(movingMask)
-Reg.SetMetricAsMattesMutualInformation(numberOfHistogramBins = 50)
+Reg.SetMetricAsCorrelation()
 Reg.SetInterpolator(sitk.sitkLinear)
 
 # use exhaustive Optimizer
@@ -69,7 +69,6 @@ Reg.AddCommand(sitk.sitkIterationEvent, lambda: command_iteration(Reg))
 outTx = Reg.Execute(fixedVolume, movingVolume)
 sitk.WriteTransform(outTx,outTxPath)
 
-
 # RIGID REGISTRATION PHASE
 # _______________________________
 
@@ -84,7 +83,7 @@ sitk.WriteTransform(quickSetVersor,trans_rigid_beforeRegistrationPath)
 
 Reg2=sitk.ImageRegistrationMethod()
 Reg2.SetInitialTransform(quickSetVersor)
-Reg2.SetMetricAsMattesMutualInformation(numberOfHistogramBins = 50)
+Reg2.SetMetricAsCorrelation()
 Reg2.SetMetricFixedMask(fixedMask)
 Reg2.SetMetricMovingMask(movingMask)
 Reg2.SetInterpolator(sitk.sitkLinear)
