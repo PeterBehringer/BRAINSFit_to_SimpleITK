@@ -28,11 +28,11 @@ outputVolume = '/Users/peterbehringer/MyTesting/SimpleITK_Tests/OutVol_Rigid_1.n
 outputTransform_Initializer = '/Users/peterbehringer/MyTesting/SimpleITK_Tests/OutTrans_Initializer_Rigid__1.h5'
 ctx1Data = '/Users/peterbehringer/MyTesting/SimpleITK_Tests/ctx1.h5'
 ctx2Data = '/Users/peterbehringer/MyTesting/SimpleITK_Tests/ctx2.h5'
-eulerTransPath = '/Users/peterbehringer/MyTesting/SimpleITK_Tests/eulerTrans.h5'
+eulerTransPath = '/Users/peterbehringer/MyTesting/SimpleITK_Tests/PetersTry_InitialTrans.h5'
 eulerTransPathAfterRotation = '/Users/peterbehringer/MyTesting/SimpleITK_Tests/eulerTransAfterRotation.h5'
 rotatedImage='/Users/peterbehringer/MyTesting/SimpleITK_Tests/Rotated_image_1.nrrd'
-bestEulerTransPath='/Users/peterbehringer/MyTesting/SimpleITK_Tests/bestEulerTrans.h5'
-outTxPath='/Users/peterbehringer/MyTesting/SimpleITK_Tests/outTx_LATEST.h5'
+bestEulerTransPath='/Users/peterbehringer/MyTesting/SimpleITK_Tests/PetersTry_AfterEulerRotation.h5'
+outTxPath='/Users/peterbehringer/MyTesting/SimpleITK_Tests/PetersTry_AfterRigid.h5'
 quickSetVersorInitial='/Users/peterbehringer/MyTesting/SimpleITK_Tests/quickVersorInitial.h5'
 
 
@@ -95,15 +95,18 @@ sitk.WriteTransform(bestEulerTrans,bestEulerTransPath)
 # _______________________________
 
 quickSetVersor=sitk.VersorRigid3DTransform()
-quickSetVersor.SetCenter(bestEulerTrans.GetCenter())
-quickSetVersor.SetTranslation(bestEulerTrans.GetTranslation())
-quickSetVersor.SetMatrix(bestEulerTrans.GetMatrix())
+
+
+
+# quickSetVersor.SetCenter(bestEulerTrans.GetCenter())
+# quickSetVersor.SetTranslation(bestEulerTrans.GetTranslation())
+# quickSetVersor.SetMatrix(bestEulerTrans.GetMatrix())
 
 sitk.WriteTransform(quickSetVersor,quickSetVersorInitial)
 
 Reg2=sitk.ImageRegistrationMethod()
 Reg2.SetInitialTransform(quickSetVersor)
-Reg2.SetMetricAsMattesMutualInformation(50)
+Reg2.SetMetricAsCorrelation()
 Reg2.SetMetricFixedMask(fixedMask)
 Reg2.SetMetricMovingMask(movingMask)
 Reg2.SetInterpolator(sitk.sitkLinear)
