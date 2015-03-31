@@ -1,6 +1,21 @@
-from __future__ import print_function
-from __future__ import division
-
+#!/usr/bin/env python
+#=========================================================================
+#
+#  Copyright Insight Software Consortium
+#
+#  Licensed under the Apache License, Version 2.0 (the "License");
+#  you may not use this file except in compliance with the License.
+#  You may obtain a copy of the License at
+#
+#         http://www.apache.org/licenses/LICENSE-2.0.txt
+#
+#  Unless required by applicable law or agreed to in writing, software
+#  distributed under the License is distributed on an "AS IS" BASIS,
+#  WITHOUT WARRANTIES OR CONDITIONS OF ANY KIND, either express or implied.
+#  See the License for the specific language governing permissions and
+#  limitations under the License.
+#
+#=========================================================================
 
 import SimpleITK as sitk
 import sys
@@ -11,7 +26,7 @@ from math import pi
 def command_iteration(method) :
     if (method.GetOptimizerIteration()==0):
         print("Scales: ", method.GetOptimizerScales())
-    print("{0:3} = {1:7.5f} : {2}".format(method.GetOptimizerIteration(),
+        print("{0:3} = {1:7.5f} : {2}".format(method.GetOptimizerIteration(),
                                            method.GetMetricValue(),
                                            method.GetOptimizerPosition()))
 
@@ -35,26 +50,23 @@ outTxAfterRigidPath='C:\Users\pb691\Desktop\MyTesting\output_transform_afterRigi
 fixedVolumePath='C:\Users\pb691\Desktop\MyTesting\FixedVolume.nrrd'
 outVolumePath='C:\Users\pb691\Desktop\MyTesting\output_volume_afterInit.nrrd'
 afterRigidPath='C:\Users\pb691\Desktop\MyTesting\output_volume_afterRigid.nrrd'
+tx2outputPath='C:\Users\pb691\Desktop\MyTesting\output_transform_afterParamsPassing.h5'
+rigid_versorPath='C:\Users\pb691\Desktop\MyTesting\Test__rigid_versor.h5'
 
 
-# Initialization
-# _______________________________
+
+######  REGISTRATION
+######  Initialization and Rotation
+
 R = sitk.ImageRegistrationMethod()
 
 R.SetMetricAsMattesMutualInformation(numberOfHistogramBins = 50)
 
 sample_per_axis=12
-if fixedVolume.GetDimension() == 2:
-    tx = sitk.Euler2DTransform()
-    # Set the number of samples (radius) in each dimension, with a
-    # default step size of 1.0
-    R.SetOptimizerAsExhaustive([sample_per_axis//2,0,0])
-    # Utilize the scale to set the step size for each dimension
-    R.SetOptimizerScales([2.0*pi/sample_per_axis, 1.0,1.0])
-elif fixedVolume.GetDimension() == 3:
-    tx = sitk.Euler3DTransform()
-    R.SetOptimizerAsExhaustive([sample_per_axis//2,sample_per_axis//2,sample_per_axis//4,0,0,0])
-    R.SetOptimizerScales([2.0*pi/sample_per_axis,2.0*pi/sample_per_axis,2.0*pi/sample_per_axis,1.0,1.0,1.0])
+
+tx = sitk.Euler3DTransform()
+R.SetOptimizerAsExhaustive([sample_per_axis//2,sample_per_axis//2,sample_per_axis//4,0,0,0])
+R.SetOptimizerScales([2.0*pi/sample_per_axis,2.0*pi/sample_per_axis,2.0*pi/sample_per_axis,1.0,1.0,1.0])
 
 # Initialize the transform with a translation and the center of
 # rotation from the moments of intensity.
@@ -66,21 +78,21 @@ R.SetInterpolator(sitk.sitkLinear)
 
 R.AddCommand( sitk.sitkIterationEvent, lambda: command_iteration(R) )
 
-outTx = R.Execute(fixedVolume, movingVolume)
+bestEulerTrans = R.Execute(fixedVolume, movingVolume)
 
 print("-------")
-print(outTx)
+print(bestEulerTrans)
 print("Optimizer stop condition: {0}".format(R.GetOptimizerStopConditionDescription()))
 print(" Iteration: {0}".format(R.GetOptimizerIteration()))
 print(" Metric value: {0}".format(R.GetMetricValue()))
 
-sitk.WriteTransform(outTx,  outputTransformInit)
+sitk.WriteTransform(bestEulerTrans,  outputTransformInit)
 
 resampler = sitk.ResampleImageFilter()
 resampler.SetReferenceImage(fixedVolume)
 resampler.SetInterpolator(sitk.sitkLinear)
 resampler.SetDefaultPixelValue(1)
-resampler.SetTransform(outTx)
+resampler.SetTransform(bestEulerTrans)
 
 out = resampler.Execute(movingVolume)
 
@@ -94,18 +106,63 @@ sitk.WriteImage(out,outVolumePath)
 # RIGID REGISTRATION PHASE
 # _______________________________
 
+print ('tx Initial after Initialization and Euler Rotation :')
+print ('_____________________________')
+print bestEulerTrans
+print ()
+print ('type of bestEulerTrans :')
+print type(bestEulerTrans)
+print ()
+
+# (1) pass parameters
+
+rigid_versor = sitk.VersorRigid3DTransform()
+
+rotationCenter = bestEulerTrans.GetCenter()
+rotation = sitk.VersorTransform(bestEulerTrans.GetMatrix(), rotationCenter)
+
+rigid_versor.SetCenter(rotation.GetCenter())
+rigid_versor.SetRotation(rotation.GetVersor())
+rigid_versor.SetMatrix(rotation.GetMatrix())
+
+
+print ('rigid_versor')
+print ('______________')
+print (rigid_versor)
+
+sitk.WriteTransform(rigid_versor,  rigid_versorPath)
+
+# rigid_euler = sitk.Euler3DTransform()
+# rigid_euler.SetMatrix(rotation.GetMatrix())
+# rigid_euler.SetCenter(rotation.GetCenter())
+
+
+"""
+
+tx2=sitk.VersorRigid3DTransform()
+tx2.SetParameters(outTx.GetParameters())
+
 tx2=sitk.VersorRigid3DTransform()
 outTx.AddTransform(tx2)
 
+sitk.WriteTransform(tx2,  tx2outputPath)
+
+"""
+
+# (2) set up registration method
+
 Reg2=sitk.ImageRegistrationMethod()
-Reg2.SetInitialTransform(outTx)
+Reg2.SetInitialTransform(tx2)
+
+
 Reg2.SetMetricAsCorrelation()
+# Reg2.SetMetricAsMattesMutualInformation(numberOfHistogramBins = 50)
+
 Reg2.SetMetricFixedMask(fixedMask)
 Reg2.SetMetricMovingMask(movingMask)
 Reg2.SetInterpolator(sitk.sitkLinear)
 
-
-# BRAINSFIT IGT SLICER 3.6 PARAMETER
+# BRAINSFIT IGT SLICER 3.6 PARAMS
 # --minimumStepLength	0.005
 # --numberOfIterations	1500
 # --translationScale 1000
@@ -131,14 +188,31 @@ Reg2.SetOptimizerAsRegularStepGradientDescent(learningRate=2.0,
                                           relaxationFactor = 0.5,
                                           gradientMagnitudeTolerance=1e-5,
                                           maximumStepSizeInPhysicalUnits=0.2)
+# set Optimizer Scales
+# as done in BRAINSCommonLib/genericRegistrationHelper.hxx L 255 ff for VersorRigid3D
+#
+# optimizerScales[0] : 1.0
+# optimizerScales[1] : 1.0
+# optimizerScales[2] : 1.0
+# optimizerScales[3] : 1.0 / m_translationScale
+# optimizerScales[4] : 1.0 / m_translationScale
+# optimizerScales[5] : 1.0 / m_translationScale
 
+Reg2.SetOptimizerScales([1.0,1.0,1.0,1.0/1000,1.0/1000,1.0/1000])
+
+print ('Now lets try Rigid')
+Reg2.AddCommand( sitk.sitkIterationEvent, lambda: command_iteration(Reg2) )
+
+# (3) execute
 
 outTxAfterRigid = Reg2.Execute(fixedVolume, movingVolume)
 
 sitk.WriteTransform(outTxAfterRigid,outTxAfterRigidPath)
 
-# resample image
+# (4) resample image
+
 resampler.SetTransform(outTxAfterRigid)
 out = resampler.Execute(movingVolume)
 simg1 = sitk.Cast(sitk.RescaleIntensity(out), sitk.sitkUInt8)
 sitk.WriteImage(simg1,afterRigidPath)
+
