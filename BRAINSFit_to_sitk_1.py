@@ -1,19 +1,7 @@
-#!/usr/bin/env python
+
 #=========================================================================
 #
-#  Copyright Insight Software Consortium
-#
-#  Licensed under the Apache License, Version 2.0 (the "License");
-#  you may not use this file except in compliance with the License.
-#  You may obtain a copy of the License at
-#
-#         http://www.apache.org/licenses/LICENSE-2.0.txt
-#
-#  Unless required by applicable law or agreed to in writing, software
-#  distributed under the License is distributed on an "AS IS" BASIS,
-#  WITHOUT WARRANTIES OR CONDITIONS OF ANY KIND, either express or implied.
-#  See the License for the specific language governing permissions and
-#  limitations under the License.
+#  BRAINSFit to SimpleITK Prostate MR Registration
 #
 #=========================================================================
 
@@ -31,30 +19,59 @@ def command_iteration(method) :
                                            method.GetOptimizerPosition()))
 
 
+"""
+
+# windows paths
+
+# read input volumes
+fixedImageFilename = 'C:\Users\pb691\Desktop\MyImageData\Images\Case1-t2ax-intraop.nrrd'
+movingImageFilename= 'C:\Users\pb691\Desktop\MyImageData\Images\Case1-t2ax-N4.nrrd'
+fixedVolume=sitk.ReadImage(fixedImageFilename, sitk.sitkFloat32)
+movingVolume=sitk.ReadImage(movingImageFilename, sitk.sitkFloat32)
+
+# read input masks
+fixedMaskFilename = 'C:\Users\pb691\Desktop\MyImageData\Segmentations\Rater1\Case1-t2ax-intraop-TG-rater1.nrrd'
+movingMaskFilename= 'C:\Users\pb691\Desktop\MyImageData\Segmentations\Rater1\Case1-t2ax-TG-rater1.nrrd'
+fixedMask=sitk.ReadImage(fixedMaskFilename, sitk.sitkFloat32)
+movingMask=sitk.ReadImage(movingMaskFilename, sitk.sitkFloat32)
+
+# set output file paths
+outputTransformInit='C:\Users\pb691\Desktop\MyTesting\output_transform_afterInit.h5'
+outTxAfterRigidPath='C:\Users\pb691\Desktop\MyTesting\output_transform_afterRigid.h5'
+fixedVolumePath='C:\Users\pb691\Desktop\MyTesting\FixedVolume.nrrd'
+outVolumePath='C:\Users\pb691\Desktop\MyTesting\output_volume_afterInit.nrrd'
+afterRigidPath='C:\Users\pb691\Desktop\MyTesting\output_volume_afterRigid.nrrd'
+tx2outputPath='C:\Users\pb691\Desktop\MyTesting\output_transform_afterParamsPassing.h5'
+rigid_versorPath='C:\Users\pb691\Desktop\MyTesting\Test__rigid_versor.h5'
+"""
 
 
 # read input volumes
 
 fixedImageFilename = '/Users/peterbehringer/MyImageData/ProstateRegistrationValidation/Images/Case1-t2ax-intraop.nrrd'
 movingImageFilename= '/Users/peterbehringer/MyImageData/ProstateRegistrationValidation/Images/Case1-t2ax-N4.nrrd'
+
 fixedVolume=sitk.ReadImage(fixedImageFilename, sitk.sitkFloat32)
 movingVolume=sitk.ReadImage(movingImageFilename, sitk.sitkFloat32)
 
 # read input masks
+
 fixedMaskFilename = '/Users/peterbehringer/MyImageData/ProstateRegistrationValidation/Segmentations/Rater1/Case1-t2ax-intraop-TG-rater1.nrrd'
 movingMaskFilename= '/Users/peterbehringer/MyImageData/ProstateRegistrationValidation/Segmentations/Rater1/Case1-t2ax-TG-rater1.nrrd'
+
 fixedMask=sitk.ReadImage(fixedMaskFilename, sitk.sitkFloat32)
 movingMask=sitk.ReadImage(movingMaskFilename, sitk.sitkFloat32)
 
 # set output file paths
-eulerTransPath = '/Users/peterbehringer/MyTesting/SimpleITK_Tests/initial_exhaustive.h5'
-eulerTransPathAfterRotation = '/Users/peterbehringer/MyTesting/SimpleITK_Tests/eulerTransAfterRotation.h5'
-rotatedImage='/Users/peterbehringer/MyTesting/SimpleITK_Tests/Rotated_image_1.nrrd'
-bestEulerTransPath='/Users/peterbehringer/MyTesting/SimpleITK_Tests/bestEulerTrans.h5'
-outTxPath='/Users/peterbehringer/MyTesting/SimpleITK_Tests/outTx_exhaustive.h5'
-outTxPath1='/Users/peterbehringer/MyTesting/SimpleITK_Tests/outTx_exhaustive1.h5'
-trans_rigid_beforeRegistrationPath='/Users/peterbehringer/MyTesting/SimpleITK_Tests/trans_rigid_beforeRegistration.h5'
-outTxAfterRigidPath='/Users/peterbehringer/MyTesting/SimpleITK_Tests/outTxAfterRigid.h5'
+
+outputTransformInit='/Users/peterbehringer/MyTesting/SimpleITK_Tests/output_transform_afterInit.h5'
+outTxAfterRigidPath='/Users/peterbehringer/MyTesting/SimpleITK_Tests/output_transform_afterRigid.h5'
+fixedVolumePath='/Users/peterbehringer/MyTesting/SimpleITK_Tests/FixedVolume.nrrd'
+outVolumePath='/Users/peterbehringer/MyTesting/SimpleITK_Tests/output_volume_afterInit.nrrd'
+afterRigidPath='/Users/peterbehringer/MyTesting/SimpleITK_Tests/output_volume_afterRigid.nrrd'
+tx2outputPath='/Users/peterbehringer/MyTesting/SimpleITK_Tests/output_transform_afterParamsPassing.h5'
+rigid_versorPath='/Users/peterbehringer/MyTesting/SimpleITK_Tests/Test__rigid_versor.h5'
+
 
 ######  REGISTRATION
 ######  Initialization and Rotation
@@ -63,37 +80,56 @@ R = sitk.ImageRegistrationMethod()
 
 R.SetMetricAsMattesMutualInformation(numberOfHistogramBins = 50)
 
-sample_per_axis=12
+# def 1 degree in rad
+one_degree=1.0*pi/180.0
 
-tx = sitk.Euler3DTransform()
-R.SetOptimizerAsExhaustive([sample_per_axis//2,sample_per_axis//2,sample_per_axis//4,0,0,0])
-R.SetOptimizerScales([2.0*pi/sample_per_axis,2.0*pi/sample_per_axis,2.0*pi/sample_per_axis,1.0,1.0,1.0])
+# search in neighbourhood from -12degree to +12degree
+angleRange = 12.0* one_degree
+
+# set step size to 3degree
+stepSize = 3.0 * one_degree
+
+# samples per axis
+sample_per_axis=round((angleRange*2)//stepSize)
+
+print ('angle range : '+str(angleRange))
+print ('sample per axis : '+str(sample_per_axis))
+print ('step size : '+str(stepSize))
+print ('12 * one_degree' +(str(12*one_degree)))
+
+
+# set the number of samples from zero in +- degree direction in each dimension -> in int not double
+R.SetOptimizerAsExhaustive([4,0,4,0,0,0])
+
+# set the step size for each dimension
+R.SetOptimizerScales([0.0523598776,0.0523598776,0.0523598776,1.0,1.0,1.0])
 
 # Initialize the transform with a translation and the center of
-# rotation from the moments of intensity.
-tx = sitk.CenteredTransformInitializer(fixedMask, movingMask, tx)
 
-R.SetInitialTransform(tx)
+# Set the Euler3DTransform
+eulerTrans=sitk.Euler3DTransform(sitk.CenteredTransformInitializer(fixedMask,movingMask,sitk.Euler3DTransform()))
+R.SetInitialTransform(eulerTrans)
 
 R.SetInterpolator(sitk.sitkLinear)
 
 R.AddCommand( sitk.sitkIterationEvent, lambda: command_iteration(R) )
 
-bestEulerTrans = R.Execute(fixedVolume, movingVolume)
+tx=R.Execute(fixedVolume, movingVolume)
 
 print("-------")
-print(bestEulerTrans)
+print(tx)
 print("Optimizer stop condition: {0}".format(R.GetOptimizerStopConditionDescription()))
 print(" Iteration: {0}".format(R.GetOptimizerIteration()))
 print(" Metric value: {0}".format(R.GetMetricValue()))
 
-sitk.WriteTransform(bestEulerTrans,  outputTransformInit)
+
+sitk.WriteTransform(eulerTrans,outputTransformInit)
 
 resampler = sitk.ResampleImageFilter()
 resampler.SetReferenceImage(fixedVolume)
 resampler.SetInterpolator(sitk.sitkLinear)
 resampler.SetDefaultPixelValue(1)
-resampler.SetTransform(bestEulerTrans)
+resampler.SetTransform(tx)
 
 out = resampler.Execute(movingVolume)
 
@@ -103,10 +139,10 @@ simg2 = sitk.Cast(sitk.RescaleIntensity(out), sitk.sitkUInt8)
 sitk.WriteImage(fixedVolume,fixedVolumePath)
 sitk.WriteImage(out,outVolumePath)
 
-
+"""
 # RIGID REGISTRATION PHASE
 # _______________________________
-"""
+
 print ('tx Initial after Initialization and Euler Rotation :')
 print ('_____________________________')
 print bestEulerTrans
@@ -114,15 +150,13 @@ print ()
 print ('type of bestEulerTrans :')
 print type(bestEulerTrans)
 print ()
+
 """
 # (1) pass parameters
-
+"""
 rigid_versor = sitk.VersorRigid3DTransform()
 
 rotationCenter = bestEulerTrans.GetCenter()
-
-print ('EulerTrans Matrix : '+str(bestEulerTrans.GetMatrix()))
-
 rotation = sitk.VersorTransform(bestEulerTrans.GetMatrix(), rotationCenter)
 
 rigid_versor.SetCenter(rotation.GetCenter())
@@ -141,7 +175,7 @@ sitk.WriteTransform(rigid_versor,  rigid_versorPath)
 # rigid_euler.SetCenter(rotation.GetCenter())
 
 
-"""
+
 
 tx2=sitk.VersorRigid3DTransform()
 tx2.SetParameters(outTx.GetParameters())
@@ -154,13 +188,13 @@ sitk.WriteTransform(tx2,  tx2outputPath)
 """
 
 # (2) set up registration method
-
+"""
 Reg2=sitk.ImageRegistrationMethod()
-Reg2.SetInitialTransform(tx2)
+Reg2.SetInitialTransform(bestEulerTrans)
 
 
 Reg2.SetMetricAsCorrelation()
-# Reg2.SetMetricAsMattesMutualInformation(numberOfHistogramBins = 50)
+#Reg2.SetMetricAsMattesMutualInformation(numberOfHistogramBins = 50)
 
 Reg2.SetMetricFixedMask(fixedMask)
 Reg2.SetMetricMovingMask(movingMask)
@@ -220,3 +254,4 @@ out = resampler.Execute(movingVolume)
 simg1 = sitk.Cast(sitk.RescaleIntensity(out), sitk.sitkUInt8)
 sitk.WriteImage(simg1,afterRigidPath)
 
+"""
