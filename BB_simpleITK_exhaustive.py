@@ -78,7 +78,29 @@ rigid_versor_trans_PATH='/Users/peterbehringer/MyTesting/SimpleITK_Tests/output_
 output_volume_after_paramPassing_PATH='/Users/peterbehringer/MyTesting/SimpleITK_Tests/output_volume_after_paramPassing.nrrd'
 rigid_versor_trans_after_rigid_PATH='/Users/peterbehringer/MyTesting/SimpleITK_Tests/rigid_versor_trans_after_rigid.h5'
 output_volume_after_rigid_PATH='/Users/peterbehringer/MyTesting/SimpleITK_Tests/output_volume_after_rigid.nrrd'
+output_volume_after_affine_PATH='/Users/peterbehringer/MyTesting/SimpleITK_Tests/output_volume_after_affine.nrrd'
+affine_trans_after_affine_PATH='/Users/peterbehringer/MyTesting/SimpleITK_Tests/affine_trans_after_affine.h5'
 
+FilteredFixedImagePATH='/Users/peterbehringer/MyTesting/SimpleITK_Tests/filteredFixedImage.nrrd'
+FilteredMovingImagePATH='/Users/peterbehringer/MyTesting/SimpleITK_Tests/filteredMovingImage.nrrd'
+
+"""
+# NORMALIZATION OF INPUT IMAGES
+# tried to fix Mutual Information by Normalization and Histogram Matching
+
+ImFilter=sitk.NormalizeImageFilter()
+HistMatchFilter=sitk.HistogramMatchingImageFilter()
+
+fImg1=ImFilter.Execute(fixedVolume)
+fImg2=ImFilter.Execute(movingVolume)
+
+FilteredFixedImage=HistMatchFilter.Execute(fImg1, fImg1)
+FilteredMovingImage=HistMatchFilter.Execute(fImg2, fImg1)
+
+
+sitk.WriteImage(FilteredFixedImage,FilteredFixedImagePATH)
+sitk.WriteImage(FilteredMovingImage,FilteredMovingImagePATH)
+"""
 
 # INITIALIZATION
 # =========================================================================
@@ -89,7 +111,7 @@ Reg.SetMetricFixedMask(fixedMask)
 Reg.SetMetricMovingMask(movingMask)
 
 Reg.SetMetricAsCorrelation()
-Reg.SetMetricAsMattesMutualInformation(numberOfHistogramBins = 50)
+# Reg.SetMetricAsMattesMutualInformation(numberOfHistogramBins = 50)
 
 Reg.SetInterpolator(sitk.sitkLinear)
 
@@ -108,7 +130,7 @@ stepSize = 3.0 * one_degree
 # samples per axis
 sample_per_axis=round((angleRange*2)//stepSize)
 
-# set the number of samples from zero in +- degree direction in each dimension -> in int not double
+# set the number of samples from zero in +- degree direction in each dimension, -> int not double
 # [rotationX, rotationY, rotationZ, translationX, translationY, translationZ]
 Reg.SetOptimizerAsExhaustive([4,0,4,0,0,0])
 
@@ -171,7 +193,6 @@ print (eulerTrans)
 
 
 # set up registration method
-
 Reg2=sitk.ImageRegistrationMethod()
 Reg2.SetInitialTransform(rigid_versor_trans,inPlace=True)
 
@@ -194,22 +215,29 @@ Reg2.SetInterpolator(sitk.sitkLinear)
 # m_ProjectedGradientTolerance(1e-5)
 
 # PARAMETER SetOptimizerAsRegularStepGradientDescent
-# double learningRate,                                    ?
+# double learningRate,                                    m_MaximumStepLength = 0.2
 # double minStep,                                         0.005
-# unsigned int numberOfIterations,                        100 (1500 actually)
+# unsigned int numberOfIterations,                        1500
 # double relaxationFactor                                 0.5
 # double gradientMagnitudeTolerance                       1e-5
 # EstimateLearningRateType estimateLearningRate=Never     ?
 # double maximumStepSizeInPhysicalUnits                   0.2
 
-Reg2.SetOptimizerAsRegularStepGradientDescent(learningRate=2.0,
-                                          minStep=0.005,
+# learningRate -> m_MaximumStepLength -> 0.2000
+
+
+
+
+Reg2.SetOptimizerAsRegularStepGradientDescent(learningRate=0.2,
                                           numberOfIterations=1500,
+                                          minStep=0.005,
                                           relaxationFactor = 0.5,
                                           gradientMagnitudeTolerance=1e-5,
                                           maximumStepSizeInPhysicalUnits=0.2)
+
+
 # set Optimizer Scales
-# as done in BRAINSCommonLib/genericRegistrationHelper.hxx L 255 ff for VersorRigid3D
+# as done in BRAINSCommonLib/genericRegistrationHelper.hxx #L255 ff for VersorRigid3D
 #
 # optimizerScales[0] : 1.0
 # optimizerScales[1] : 1.0
@@ -218,19 +246,18 @@ Reg2.SetOptimizerAsRegularStepGradientDescent(learningRate=2.0,
 # optimizerScales[4] : 1.0 / m_translationScale
 # optimizerScales[5] : 1.0 / m_translationScale
 
-Reg2.SetOptimizerScales([1.0,1.0,1.0,1.0/1000,1.0/1000,1.0/1000])
+Reg2.SetOptimizerScales([1.0,1.0,1.0,1000,1000,1000])
+Reg2.SetOptimizerScalesFromJacobian()
 
+
+# execute
 print ('Now lets try Rigid')
-Reg2.AddCommand( sitk.sitkIterationEvent, lambda: command_iteration(Reg2) )
-
-# (3) execute
-
+Reg2.AddCommand( sitk.sitkIterationEvent, lambda: command_iteration(Reg2))
 Reg2.Execute(fixedVolume, movingVolume)
 
 sitk.WriteTransform(rigid_versor_trans,rigid_versor_trans_after_rigid_PATH)
 
-# (4) resample image
-
+# resample image
 resampler.SetTransform(rigid_versor_trans)
 out = resampler.Execute(movingVolume)
 simg1 = sitk.Cast(sitk.RescaleIntensity(out), sitk.sitkUInt8)
@@ -238,10 +265,102 @@ sitk.WriteImage(simg1,output_volume_after_rigid_PATH)
 
 
 
+"""
+
+
 # AFFINE REGISTRATION
+
+# --useScaleVersor3D
+
+# --useScaleSkewVersor3D
+
 # =========================================================================
+
+
+# Enhance searchSpace by Passing Parameters from RigidVersor3DTransform to AffineTransform()
+# =========================================================================
+
+affine_trans = sitk.AffineTransform(fixedVolume.GetDimension())
+affine_trans.SetCenter(eulerTrans.GetCenter())
+affine_trans.SetTranslation(eulerTrans.GetTranslation())
+affine_trans.SetMatrix(eulerTrans.GetMatrix())
+
+# make sure params are passed correctly:
+print ('Affine Transform after parameter passing :')
+print ('_____________________________')
+print ()
+print affine_trans
+
+print ('Reference: eulerTrans')
+print ('______________')
+print (eulerTrans)
+
+
+# set up registration method
+Reg3=sitk.ImageRegistrationMethod()
+Reg3.SetInitialTransform(affine_trans,inPlace=True)
+
+Reg3.SetMetricAsCorrelation()
+# Reg2.SetMetricAsMattesMutualInformation(numberOfHistogramBins = 50)
+
+Reg3.SetMetricFixedMask(fixedMask)
+Reg3.SetMetricMovingMask(movingMask)
+Reg3.SetInterpolator(sitk.sitkLinear)
+
+# BRAINSFIT IGT SLICER 3.6 PARAMS
+# --minimumStepLength	0.005
+# --numberOfIterations	1500
+# --translationScale 1000
+
+# BRAINSFitHelperTemplate.hxx PARAMS
+# m_MaximumStepLength(0.2)
+# m_MinimumStepLength(1, 0.005)
+# m_RelaxationFactor(0.5)
+# m_ProjectedGradientTolerance(1e-5)
+
+# PARAMETER SetOptimizerAsRegularStepGradientDescent
+# double learningRate,                                    ?
+# double minStep,                                         0.005
+# unsigned int numberOfIterations,                        1500
+# double relaxationFactor                                 0.5
+# double gradientMagnitudeTolerance                       1e-5
+# EstimateLearningRateType estimateLearningRate=Never     ?
+# double maximumStepSizeInPhysicalUnits                   0.2
+
+Reg3.SetOptimizerAsRegularStepGradientDescent(learningRate=2.0,
+                                          minStep=0.005,
+                                          numberOfIterations=1500,
+                                          relaxationFactor = 0.5,
+                                          gradientMagnitudeTolerance=1e-5,
+                                          maximumStepSizeInPhysicalUnits=0.2)
+# set Optimizer Scales
+# as done in BRAINSCommonLib/genericRegistrationHelper.hxx #L255 ff for VersorRigid3D
+#
+# optimizerScales[0] : 1.0
+# optimizerScales[1] : 1.0
+# optimizerScales[2] : 1.0
+# optimizerScales[3] : 1.0 / m_translationScale
+# optimizerScales[4] : 1.0 / m_translationScale
+# optimizerScales[5] : 1.0 / m_translationScale
+
+Reg3.SetOptimizerScales([1.0,1.0,1.0,1.0/1000,1.0/1000,1.0/1000])
+
+
+# execute
+print ('Now lets try Affine')
+Reg3.AddCommand( sitk.sitkIterationEvent, lambda: command_iteration(Reg3) )
+Reg3.Execute(fixedVolume, movingVolume)
+
+sitk.WriteTransform(affine_trans,affine_trans_after_affine_PATH)
+
+# resample image
+resampler.SetTransform(affine_trans)
+out = resampler.Execute(movingVolume)
+simg3 = sitk.Cast(sitk.RescaleIntensity(out), sitk.sitkUInt8)
+sitk.WriteImage(simg3,output_volume_after_affine_PATH)
 
 
 
 # BSPLINE REGISTRATION
 # =========================================================================
+"""

@@ -194,7 +194,7 @@ Reg2.SetInterpolator(sitk.sitkLinear)
 # EstimateLearningRateType estimateLearningRate=Never     ?
 # double maximumStepSizeInPhysicalUnits                   0.2
 
-Reg2.SetOptimizerAsRegularStepGradientDescent(learningRate=2.0,
+Reg2.SetOptimizerAsRegularStepGradientDescent(learningRate=0.2000,
                                           minStep=0.005,
                                           numberOfIterations=1500,
                                           relaxationFactor = 0.5,
