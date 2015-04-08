@@ -225,6 +225,11 @@ Reg2.SetInterpolator(sitk.sitkLinear)
 
 # learningRate -> m_MaximumStepLength -> 0.2000
 
+# parameter, where I dont know where to set yet:
+# samplingPercentage = 0.002
+# reproportionScale = 1
+# skewScale = 1
+
 
 
 
@@ -234,6 +239,7 @@ Reg2.SetOptimizerAsRegularStepGradientDescent(learningRate=0.2,
                                           relaxationFactor = 0.5,
                                           gradientMagnitudeTolerance=1e-5,
                                           maximumStepSizeInPhysicalUnits=0.2)
+
 
 
 # set Optimizer Scales
