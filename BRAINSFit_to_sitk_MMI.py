@@ -45,9 +45,7 @@ rigid_versor_trans_after_rigid_PATH='/Users/peterbehringer/MyTesting/SimpleITK_T
 output_volume_after_rigid_PATH='/Users/peterbehringer/MyTesting/SimpleITK_Tests/output_volume_after_rigid.nrrd'
 output_volume_after_affine_PATH='/Users/peterbehringer/MyTesting/SimpleITK_Tests/output_volume_after_affine.nrrd'
 affine_trans_after_affine_PATH='/Users/peterbehringer/MyTesting/SimpleITK_Tests/affine_trans_after_affine.h5'
-
-FilteredFixedImagePATH='/Users/peterbehringer/MyTesting/SimpleITK_Tests/filteredFixedImage.nrrd'
-FilteredMovingImagePATH='/Users/peterbehringer/MyTesting/SimpleITK_Tests/filteredMovingImage.nrrd'
+euler_trans_PATH='/Users/peterbehringer/MyTesting/SimpleITK_Tests/euler_trans.h5'
 
 
 # INITIALIZATION
@@ -58,7 +56,7 @@ Reg=sitk.ImageRegistrationMethod()
 Reg.SetMetricFixedMask(fixedMask)
 Reg.SetMetricMovingMask(movingMask)
 
-# Reg.SetMetricAsCorrelation()
+Reg.SetMetricAsCorrelation()
 Reg.SetMetricAsMattesMutualInformation(numberOfHistogramBins = 50)
 
 Reg.SetInterpolator(sitk.sitkLinear)
@@ -98,7 +96,7 @@ Reg.AddCommand(sitk.sitkIterationEvent, lambda: command_iteration(Reg))
 Reg.Execute(fixedVolume, movingVolume)
 
 print eulerTrans
-sitk.WriteTransform(eulerTrans,outTxPath1)
+sitk.WriteTransform(eulerTrans,euler_trans_PATH)
 
 # get image volume
 resampler = sitk.ResampleImageFilter()
@@ -159,7 +157,7 @@ Reg2.SetOptimizerAsRegularStepGradientDescent(learningRate=0.2,
                                           maximumStepSizeInPhysicalUnits=0.2)
 
 
-Reg2.SetOptimizerScales([1.0,1.0,1.0,1000,1000,1000])
+Reg2.SetOptimizerScales([1.0,1.0,1.0,1.0/1000,1.0/1000,1.0/1000])
 # Reg2.SetOptimizerScalesFromJacobian()
 
 
