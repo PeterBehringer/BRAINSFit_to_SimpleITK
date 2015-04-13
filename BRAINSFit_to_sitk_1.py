@@ -48,10 +48,7 @@ tx2outputPath='C:\Users\pb691\Desktop\MyTesting\output_transform_afterParamsPass
 rigid_versorPath='C:\Users\pb691\Desktop\MyTesting\Test__rigid_versor.h5'
 """
 
-<<<<<<< HEAD
 
-=======
->>>>>>> 5d1af5ac4f599acbe27872abb625b45190c6871f
 # read input volumes
 
 fixedImageFilename = '/Users/peterbehringer/MyImageData/ProstateRegistrationValidation/Images/Case1-t2ax-intraop.nrrd'

@@ -252,7 +252,7 @@ Reg2.SetOptimizerAsRegularStepGradientDescent(learningRate=0.2,
 # optimizerScales[4] : 1.0 / m_translationScale
 # optimizerScales[5] : 1.0 / m_translationScale
 
-Reg2.SetOptimizerScales([1.0,1.0,1.0,1000,1000,1000])
+Reg2.SetOptimizerScales([1.0,1.0,1.0,1.0/1000,1.0/1000,1.0/1000])
 Reg2.SetOptimizerScalesFromJacobian()
 
 

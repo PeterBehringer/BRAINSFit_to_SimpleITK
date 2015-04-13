@@ -53,10 +53,10 @@ euler_trans_PATH='/Users/peterbehringer/MyTesting/SimpleITK_Tests/euler_trans.h5
 
 # Initialize ImageRegistrationMethod()
 Reg=sitk.ImageRegistrationMethod()
-Reg.SetMetricFixedMask(fixedMask)
-Reg.SetMetricMovingMask(movingMask)
+# Reg.SetMetricFixedMask(fixedMask)
+# Reg.SetMetricMovingMask(movingMask)
 
-Reg.SetMetricAsCorrelation()
+# Reg.SetMetricAsCorrelation()
 Reg.SetMetricAsMattesMutualInformation(numberOfHistogramBins = 50)
 
 Reg.SetInterpolator(sitk.sitkLinear)
@@ -88,22 +88,21 @@ Reg.SetOptimizerScales([stepSize,stepSize,stepSize,1.0,1.0,1.0])
 # =========================================================================
 
 # Set the Euler3DTransform
-eulerTrans=sitk.Euler3DTransform(sitk.CenteredTransformInitializer(fixedMask,movingMask,sitk.Euler3DTransform()))
+euler_trans=sitk.Euler3DTransform(sitk.CenteredTransformInitializer(fixedMask,movingMask,sitk.Euler3DTransform()))
 
 # Set, Execute & write
-Reg.SetInitialTransform(eulerTrans,inPlace=True)
+Reg.SetInitialTransform(euler_trans,inPlace=True)
 Reg.AddCommand(sitk.sitkIterationEvent, lambda: command_iteration(Reg))
 Reg.Execute(fixedVolume, movingVolume)
 
-print eulerTrans
-sitk.WriteTransform(eulerTrans,euler_trans_PATH)
+sitk.WriteTransform(euler_trans,euler_trans_PATH)
 
 # get image volume
 resampler = sitk.ResampleImageFilter()
 resampler.SetReferenceImage(fixedVolume)
 resampler.SetInterpolator(sitk.sitkLinear)
 resampler.SetDefaultPixelValue(1)
-resampler.SetTransform(eulerTrans)
+resampler.SetTransform(euler_trans)
 
 output_volume_after_init = resampler.Execute(movingVolume)
 
@@ -117,21 +116,35 @@ sitk.WriteImage(simg2,output_volume_after_init_PATH)
 # =========================================================================
 
 rigid_versor_trans = sitk.VersorRigid3DTransform()
-rigid_versor_trans.SetCenter(eulerTrans.GetCenter())
-rigid_versor_trans.SetTranslation(eulerTrans.GetTranslation())
-rigid_versor_trans.SetMatrix(eulerTrans.GetMatrix())
+rigid_versor_trans.SetCenter(euler_trans.GetCenter())
+rigid_versor_trans.SetTranslation(euler_trans.GetTranslation())
+rigid_versor_trans.SetMatrix(euler_trans.GetMatrix())
 
 # make sure params are passed correctly:
-print ('Transform after parameter passing :')
+
+print ('euler_trans before parameter passing :')
+print ('_____________________________')
+print ()
+print euler_trans
+print ()
+print ('euler_trans.GetParameters() :')
+print ('_____________________________')
+print euler_trans.GetParameters()
+print ()
+print ()
+
+print ('rigid_versor_trans after parameter passing :')
 print ('_____________________________')
 print ()
 print rigid_versor_trans
+print ()
+print ('rigid_versor_trans.GetParameters() :')
+print ('_____________________________')
+print rigid_versor_trans.GetParameters()
+print ()
+print ()
 
-print ('eulerTrans')
-print ('______________')
-print (eulerTrans)
-
-# -> checked, transforms applied to moving image look exactly the same
+# -> checked/transforms applied to moving image look exactly the same
 
 
 # RIGID REGISTRATION
@@ -142,11 +155,11 @@ print (eulerTrans)
 Reg2=sitk.ImageRegistrationMethod()
 Reg2.SetInitialTransform(rigid_versor_trans,inPlace=True)
 
-Reg2.SetMetricAsCorrelation()
-# Reg2.SetMetricAsMattesMutualInformation(numberOfHistogramBins = 50)
+# Reg2.SetMetricAsCorrelation()
+Reg2.SetMetricAsMattesMutualInformation(numberOfHistogramBins = 50)
 
-Reg2.SetMetricFixedMask(fixedMask)
-Reg2.SetMetricMovingMask(movingMask)
+# Reg2.SetMetricFixedMask(fixedMask)
+# Reg2.SetMetricMovingMask(movingMask)
 Reg2.SetInterpolator(sitk.sitkLinear)
 
 Reg2.SetOptimizerAsRegularStepGradientDescent(learningRate=0.2,
@@ -159,6 +172,16 @@ Reg2.SetOptimizerAsRegularStepGradientDescent(learningRate=0.2,
 
 Reg2.SetOptimizerScales([1.0,1.0,1.0,1.0/1000,1.0/1000,1.0/1000])
 # Reg2.SetOptimizerScalesFromJacobian()
+
+smoothingSigmas=[0]
+Reg2.SetSmoothingSigmasPerLevel(smoothingSigmas)
+Reg2.SetMetricSamplingStrategy(Reg2.RANDOM)
+Reg2.SetMetricSamplingPercentage(1)
+Reg2.SetSmoothingSigmasAreSpecifiedInPhysicalUnits(True)
+
+shrinkFactors=[1]
+Reg2.SetShrinkFactorsPerLevel(shrinkFactors)
+
 
 
 # execute
@@ -174,3 +197,13 @@ out = resampler.Execute(movingVolume)
 simg1 = sitk.Cast(sitk.RescaleIntensity(out), sitk.sitkUInt8)
 sitk.WriteImage(simg1,output_volume_after_rigid_PATH)
 
+print ('rigid_versor_trans after rigid optimization :')
+print ('_____________________________')
+print ()
+print rigid_versor_trans
+print ()
+print ('rigid_versor_trans.GetParameters() :')
+print ('_____________________________')
+print rigid_versor_trans.GetParameters()
+print ()
+print ()
