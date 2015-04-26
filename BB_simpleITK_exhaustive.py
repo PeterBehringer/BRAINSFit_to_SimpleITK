@@ -231,8 +231,6 @@ Reg2.SetInterpolator(sitk.sitkLinear)
 # skewScale = 1
 
 
-
-
 Reg2.SetOptimizerAsRegularStepGradientDescent(learningRate=0.2,
                                           numberOfIterations=1500,
                                           minStep=0.005,

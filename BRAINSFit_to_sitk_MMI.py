@@ -46,6 +46,11 @@ output_volume_after_rigid_PATH='/Users/peterbehringer/MyTesting/SimpleITK_Tests/
 output_volume_after_affine_PATH='/Users/peterbehringer/MyTesting/SimpleITK_Tests/output_volume_after_affine.nrrd'
 affine_trans_after_affine_PATH='/Users/peterbehringer/MyTesting/SimpleITK_Tests/affine_trans_after_affine.h5'
 euler_trans_PATH='/Users/peterbehringer/MyTesting/SimpleITK_Tests/euler_trans.h5'
+resampled_moving_mask_PATH='/Users/peterbehringer/MyTesting/SimpleITK_Tests/resampled_moving_mask.nrrd'
+roi_mask_PATH='/Users/peterbehringer/MyTesting/SimpleITK_Tests/roi_mask.nrrd'
+bounding_box_PATH='/Users/peterbehringer/MyTesting/SimpleITK_Tests/bounding_box.nrrd'
+roi_mask_thresholded_PATH='/Users/peterbehringer/MyTesting/SimpleITK_Tests/roi_mask_thresholded.nrrd'
+croppedImage_PATH='/Users/peterbehringer/MyTesting/SimpleITK_Tests/croppedImage.nrrd'
 
 
 # INITIALIZATION
@@ -124,32 +129,96 @@ rigid_versor_trans.SetMatrix(euler_trans.GetMatrix())
 
 print ('euler_trans before parameter passing :')
 print ('_____________________________')
-print ()
+print ('')
 print euler_trans
-print ()
+print ('')
 print ('euler_trans.GetParameters() :')
 print ('_____________________________')
 print euler_trans.GetParameters()
-print ()
-print ()
+print ('')
+print ('')
 
 print ('rigid_versor_trans after parameter passing :')
 print ('_____________________________')
-print ()
+print ('')
 print rigid_versor_trans
-print ()
+print ('')
 print ('rigid_versor_trans.GetParameters() :')
 print ('_____________________________')
 print rigid_versor_trans.GetParameters()
-print ()
-print ()
+print ('')
+print ('')
 
-# -> checked/transforms applied to moving image look exactly the same
+# -> transforms applied to moving image look exactly the same
+
+
+# CREATE BOUNDING BOX
+# =========================================================================
+
+mask_resampler = sitk.ResampleImageFilter()
+mask_resampler.SetTransform(euler_trans)
+mask_resampler.SetReferenceImage(fixedVolume)
+mask_resampler.SetOutputSpacing(fixedVolume.GetSpacing())
+mask_resampler.SetOutputDirection(fixedVolume.GetDirection())
+mask_resampler.SetOutputOrigin(fixedVolume.GetOrigin())
+mask_resampler.SetOutputPixelType(sitk.sitkFloat32)
+
+resampled_moving_mask=mask_resampler.Execute(movingMask)
+sitk.WriteImage(resampled_moving_mask,resampled_moving_mask_PATH)
+
+# add transformed mask and fixed mask
+add_image_filter=sitk.AddImageFilter()
+roi_mask=add_image_filter.Execute(resampled_moving_mask,fixedMask)
+sitk.WriteImage(roi_mask,roi_mask_PATH)
+
+# apply threshold
+binary_threshold=sitk.BinaryThresholdImageFilter()
+binary_threshold.SetLowerThreshold(0.0001)
+binary_threshold.SetUpperThreshold(100000)
+binary_threshold.SetOutsideValue(0)
+binary_threshold.SetInsideValue(1)
+
+roi_mask_thresholded=binary_threshold.Execute(roi_mask)
+
+# get the bounding Box
+cast = sitk.CastImageFilter()
+cast.SetOutputPixelType(2)
+roi_mask_casted = cast.Execute(roi_mask_thresholded)
+
+label_statistics_filter=sitk.LabelStatisticsImageFilter()
+label_statistics_filter.Execute(roi_mask_casted,roi_mask_casted)
+bounding_box = label_statistics_filter.GetBoundingBox(1)
+
+sitk.WriteImage(roi_mask_thresholded,roi_mask_thresholded_PATH)
+
+size = roi_mask_casted.GetSize()
+
+bbMin = (max(0,bounding_box[0]-30),max(0,bounding_box[2]-30),max(0,bounding_box[4]-5))
+bbMax = (size[0]-min(size[0],bounding_box[1]+30),size[1]-min(size[1],bounding_box[3]+30),size[2]-(min(size[2],bounding_box[5]+5)))
+
+lower_boundaries=(bounding_box[0],bounding_box[2],bounding_box[4])
+upper_boundaries=(bounding_box[1],bounding_box[3],bounding_box[5])
+
+print ('size : '+str(size))
+print ('bbMin :'+str(bbMin))
+print ('bbMax :'+str(bbMax))
+print ('lower_boundaries :'+str(lower_boundaries))
+print ('upper_boundaries :'+str(upper_boundaries))
+
+# CROP MOVING IMAGE
+# =========================================================================
+
+crop = sitk.CropImageFilter()
+crop.SetLowerBoundaryCropSize(bbMin)
+crop.SetUpperBoundaryCropSize(bbMax)
+movingVolume_cropped = crop.Execute(movingVolume)
+
+simg1 = sitk.Cast(sitk.RescaleIntensity(movingVolume_cropped), sitk.sitkUInt8)
+sitk.WriteImage(simg1,croppedImage_PATH)
 
 
 # RIGID REGISTRATION
 # =========================================================================
-
 
 # set up registration method
 Reg2=sitk.ImageRegistrationMethod()
@@ -182,12 +251,10 @@ Reg2.SetSmoothingSigmasAreSpecifiedInPhysicalUnits(True)
 shrinkFactors=[1]
 Reg2.SetShrinkFactorsPerLevel(shrinkFactors)
 
-
-
 # execute
 print ('Now lets try Rigid')
 Reg2.AddCommand( sitk.sitkIterationEvent, lambda: command_iteration(Reg2))
-Reg2.Execute(fixedVolume, movingVolume)
+Reg2.Execute(fixedVolume, movingVolume_cropped)
 
 sitk.WriteTransform(rigid_versor_trans,rigid_versor_trans_after_rigid_PATH)
 
@@ -196,14 +263,3 @@ resampler.SetTransform(rigid_versor_trans)
 out = resampler.Execute(movingVolume)
 simg1 = sitk.Cast(sitk.RescaleIntensity(out), sitk.sitkUInt8)
 sitk.WriteImage(simg1,output_volume_after_rigid_PATH)
-
-print ('rigid_versor_trans after rigid optimization :')
-print ('_____________________________')
-print ()
-print rigid_versor_trans
-print ()
-print ('rigid_versor_trans.GetParameters() :')
-print ('_____________________________')
-print rigid_versor_trans.GetParameters()
-print ()
-print ()
