@@ -27,8 +27,13 @@ def command_iteration(method) :
 
 fixedImageFilename = '/Users/peterbehringer/MyImageData/ProstateRegistrationValidation/Images/Case1-t2ax-intraop.nrrd'
 movingImageFilename= '/Users/peterbehringer/MyImageData/ProstateRegistrationValidation/Images/Case1-t2ax-N4.nrrd'
+fixedImage_cropped_Filename = '/Users/peterbehringer/MyImageData/ProstateRegistrationValidation/Images/Case1-t2ax-intraop-cropped.nrrd'
+movingImage_cropped_Filename= '/Users/peterbehringer/MyImageData/ProstateRegistrationValidation/Images/Case1-t2ax-N4-cropped.nrrd'
 fixedVolume=sitk.ReadImage(fixedImageFilename, sitk.sitkFloat32)
 movingVolume=sitk.ReadImage(movingImageFilename, sitk.sitkFloat32)
+movingVolume_cropped=sitk.ReadImage(movingImage_cropped_Filename, sitk.sitkFloat32)
+fixedVolume_cropped=sitk.ReadImage(fixedImage_cropped_Filename, sitk.sitkFloat32)
+
 
 # read input masks
 fixedMaskFilename = '/Users/peterbehringer/MyImageData/ProstateRegistrationValidation/Segmentations/Rater1/Case1-t2ax-intraop-TG-rater1.nrrd'
@@ -58,8 +63,8 @@ croppedImage_PATH='/Users/peterbehringer/MyTesting/SimpleITK_Tests/croppedImage.
 
 # Initialize ImageRegistrationMethod()
 Reg=sitk.ImageRegistrationMethod()
-# Reg.SetMetricFixedMask(fixedMask)
-# Reg.SetMetricMovingMask(movingMask)
+Reg.SetMetricFixedMask(fixedMask)
+Reg.SetMetricMovingMask(movingMask)
 
 # Reg.SetMetricAsCorrelation()
 Reg.SetMetricAsMattesMutualInformation(numberOfHistogramBins = 50)
@@ -98,7 +103,7 @@ euler_trans=sitk.Euler3DTransform(sitk.CenteredTransformInitializer(fixedMask,mo
 # Set, Execute & write
 Reg.SetInitialTransform(euler_trans,inPlace=True)
 Reg.AddCommand(sitk.sitkIterationEvent, lambda: command_iteration(Reg))
-Reg.Execute(fixedVolume, movingVolume)
+Reg.Execute(fixedVolume_cropped, movingVolume_cropped)
 
 sitk.WriteTransform(euler_trans,euler_trans_PATH)
 
@@ -109,9 +114,9 @@ resampler.SetInterpolator(sitk.sitkLinear)
 resampler.SetDefaultPixelValue(1)
 resampler.SetTransform(euler_trans)
 
-output_volume_after_init = resampler.Execute(movingVolume)
+output_volume_after_init = resampler.Execute(movingVolume_cropped)
 
-simg1 = sitk.Cast(sitk.RescaleIntensity(fixedVolume), sitk.sitkUInt8)
+simg1 = sitk.Cast(sitk.RescaleIntensity(fixedVolume_cropped), sitk.sitkUInt8)
 simg2 = sitk.Cast(sitk.RescaleIntensity(output_volume_after_init), sitk.sitkUInt8)
 
 sitk.WriteImage(simg1,fixed_volume_PATH)
@@ -154,7 +159,7 @@ print ('')
 
 # CREATE BOUNDING BOX
 # =========================================================================
-
+"""
 mask_resampler = sitk.ResampleImageFilter()
 mask_resampler.SetTransform(euler_trans)
 mask_resampler.SetReferenceImage(fixedVolume)
@@ -215,7 +220,7 @@ movingVolume_cropped = crop.Execute(movingVolume)
 
 simg1 = sitk.Cast(sitk.RescaleIntensity(movingVolume_cropped), sitk.sitkUInt8)
 sitk.WriteImage(simg1,croppedImage_PATH)
-
+"""
 
 # RIGID REGISTRATION
 # =========================================================================
@@ -227,8 +232,8 @@ Reg2.SetInitialTransform(rigid_versor_trans,inPlace=True)
 # Reg2.SetMetricAsCorrelation()
 Reg2.SetMetricAsMattesMutualInformation(numberOfHistogramBins = 50)
 
-# Reg2.SetMetricFixedMask(fixedMask)
-# Reg2.SetMetricMovingMask(movingMask)
+Reg2.SetMetricFixedMask(fixedMask)
+Reg2.SetMetricMovingMask(movingMask)
 Reg2.SetInterpolator(sitk.sitkLinear)
 
 Reg2.SetOptimizerAsRegularStepGradientDescent(learningRate=0.2,
@@ -253,13 +258,15 @@ Reg2.SetShrinkFactorsPerLevel(shrinkFactors)
 
 # execute
 print ('Now lets try Rigid')
+print ('')
 Reg2.AddCommand( sitk.sitkIterationEvent, lambda: command_iteration(Reg2))
-Reg2.Execute(fixedVolume, movingVolume_cropped)
+Reg2.Execute(fixedVolume_cropped, movingVolume_cropped)
 
 sitk.WriteTransform(rigid_versor_trans,rigid_versor_trans_after_rigid_PATH)
 
 # resample image
+resampler.SetReferenceImage(fixedVolume_cropped)
 resampler.SetTransform(rigid_versor_trans)
-out = resampler.Execute(movingVolume)
+out = resampler.Execute(movingVolume_cropped)
 simg1 = sitk.Cast(sitk.RescaleIntensity(out), sitk.sitkUInt8)
 sitk.WriteImage(simg1,output_volume_after_rigid_PATH)

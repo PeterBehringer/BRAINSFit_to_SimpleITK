@@ -53,8 +53,11 @@ rigid_versorPath='C:\Users\pb691\Desktop\MyTesting\Test__rigid_versor.h5'
 
 fixedImageFilename = '/Users/peterbehringer/MyImageData/ProstateRegistrationValidation/Images/Case1-t2ax-intraop.nrrd'
 movingImageFilename= '/Users/peterbehringer/MyImageData/ProstateRegistrationValidation/Images/Case1-t2ax-N4.nrrd'
+movingImage_cropped_Filename= '/Users/peterbehringer/MyImageData/ProstateRegistrationValidation/Images/Case1-t2ax-N4-cropped.nrrd'
 fixedVolume=sitk.ReadImage(fixedImageFilename, sitk.sitkFloat32)
 movingVolume=sitk.ReadImage(movingImageFilename, sitk.sitkFloat32)
+movingVolume_cropped=sitk.ReadImage(movingImage_cropped_Filename, sitk.sitkFloat32)
+
 
 # read input masks
 fixedMaskFilename = '/Users/peterbehringer/MyImageData/ProstateRegistrationValidation/Segmentations/Rater1/Case1-t2ax-intraop-TG-rater1.nrrd'
