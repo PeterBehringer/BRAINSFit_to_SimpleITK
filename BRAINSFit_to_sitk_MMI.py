@@ -7,7 +7,6 @@
 
 import os
 import SimpleITK as sitk
-import slicer
 from math import pi
 import numpy as np
 
@@ -27,8 +26,8 @@ def command_iteration(method) :
 
 fixedImageFilename = '/Users/peterbehringer/MyImageData/ProstateRegistrationValidation/Images/Case1-t2ax-intraop.nrrd'
 movingImageFilename= '/Users/peterbehringer/MyImageData/ProstateRegistrationValidation/Images/Case1-t2ax-N4.nrrd'
-fixedImage_cropped_Filename = '/Users/peterbehringer/MyImageData/ProstateRegistrationValidation/Images/Case1-t2ax-intraop-cropped.nrrd'
-movingImage_cropped_Filename= '/Users/peterbehringer/MyImageData/ProstateRegistrationValidation/Images/Case1-t2ax-N4-cropped.nrrd'
+fixedImage_cropped_Filename = '/Users/peterbehringer/MyImageData/ProstateRegistrationValidation/Images/Case1-t2ax-intraop.nrrd'
+movingImage_cropped_Filename= '/Users/peterbehringer/MyImageData/ProstateRegistrationValidation/Images/Case1-t2ax-N4.nrrd'
 fixedVolume=sitk.ReadImage(fixedImageFilename, sitk.sitkFloat32)
 movingVolume=sitk.ReadImage(movingImageFilename, sitk.sitkFloat32)
 movingVolume_cropped=sitk.ReadImage(movingImage_cropped_Filename, sitk.sitkFloat32)
@@ -231,7 +230,6 @@ Reg2.SetInitialTransform(rigid_versor_trans,inPlace=True)
 
 # Reg2.SetMetricAsCorrelation()
 Reg2.SetMetricAsMattesMutualInformation(numberOfHistogramBins = 50)
-
 Reg2.SetMetricFixedMask(fixedMask)
 Reg2.SetMetricMovingMask(movingMask)
 Reg2.SetInterpolator(sitk.sitkLinear)
@@ -250,6 +248,7 @@ Reg2.SetOptimizerScales([1.0,1.0,1.0,1.0/1000,1.0/1000,1.0/1000])
 smoothingSigmas=[0]
 Reg2.SetSmoothingSigmasPerLevel(smoothingSigmas)
 Reg2.SetMetricSamplingStrategy(Reg2.RANDOM)
+
 Reg2.SetMetricSamplingPercentage(1)
 Reg2.SetSmoothingSigmasAreSpecifiedInPhysicalUnits(True)
 
