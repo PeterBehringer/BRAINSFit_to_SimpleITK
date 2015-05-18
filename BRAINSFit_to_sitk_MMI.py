@@ -55,7 +55,7 @@ roi_mask_PATH='/Users/peterbehringer/MyTesting/SimpleITK_Tests/roi_mask.nrrd'
 bounding_box_PATH='/Users/peterbehringer/MyTesting/SimpleITK_Tests/bounding_box.nrrd'
 roi_mask_thresholded_PATH='/Users/peterbehringer/MyTesting/SimpleITK_Tests/roi_mask_thresholded.nrrd'
 croppedImage_PATH='/Users/peterbehringer/MyTesting/SimpleITK_Tests/croppedImage.nrrd'
-
+rigid_versor_trans_before_rigid_PATH='/Users/peterbehringer/MyTesting/SimpleITK_Tests/rigid_versor_trans_before_rigid.h5'
 
 # INITIALIZATION
 # =========================================================================
@@ -64,6 +64,8 @@ croppedImage_PATH='/Users/peterbehringer/MyTesting/SimpleITK_Tests/croppedImage.
 Reg=sitk.ImageRegistrationMethod()
 Reg.SetMetricFixedMask(fixedMask)
 Reg.SetMetricMovingMask(movingMask)
+Reg.SetMetricSamplingPercentage(.9)
+Reg.SetMetricSamplingStrategy(sitk.ImageRegistrationMethod.REGULAR)
 
 # Reg.SetMetricAsCorrelation()
 Reg.SetMetricAsMattesMutualInformation(numberOfHistogramBins = 50)
@@ -128,7 +130,7 @@ rigid_versor_trans = sitk.VersorRigid3DTransform()
 rigid_versor_trans.SetCenter(euler_trans.GetCenter())
 rigid_versor_trans.SetTranslation(euler_trans.GetTranslation())
 rigid_versor_trans.SetMatrix(euler_trans.GetMatrix())
-
+sitk.WriteTransform(rigid_versor_trans,rigid_versor_trans_before_rigid_PATH)
 # make sure params are passed correctly:
 
 print ('euler_trans before parameter passing :')
@@ -243,13 +245,13 @@ Reg2.SetOptimizerAsRegularStepGradientDescent(learningRate=0.2,
 
 
 Reg2.SetOptimizerScales([1.0,1.0,1.0,1.0/1000,1.0/1000,1.0/1000])
-# Reg2.SetOptimizerScalesFromJacobian()
 
 smoothingSigmas=[0]
 Reg2.SetSmoothingSigmasPerLevel(smoothingSigmas)
-Reg2.SetMetricSamplingStrategy(Reg2.RANDOM)
 
-Reg2.SetMetricSamplingPercentage(1)
+Reg2.SetMetricSamplingStrategy(Reg2.RANDOM)
+Reg2.SetMetricSamplingPercentage(0.002)
+
 Reg2.SetSmoothingSigmasAreSpecifiedInPhysicalUnits(True)
 
 shrinkFactors=[1]

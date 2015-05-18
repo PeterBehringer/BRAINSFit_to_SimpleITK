@@ -78,6 +78,9 @@ Reg.SetMetricMovingMask(moving_image_mask)
 Reg.SetMetricAsMattesMutualInformation(numberOfHistogramBins = 50)
 
 Reg.SetInterpolator(sitk.sitkLinear)
+Reg.SetMetricSamplingPercentage(.9)
+Reg.SetMetricSamplingStrategy(sitk.ImageRegistrationMethod.RANDOM)
+
 
 # Set Rotation Parameters for ExhaustiveOptimizer
 # =========================================================================

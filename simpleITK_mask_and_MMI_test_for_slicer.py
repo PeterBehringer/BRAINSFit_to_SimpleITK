@@ -114,6 +114,8 @@ slicer.util.loadLabelVolume(filepath_moving_image_mask)
 Reg=sitk.ImageRegistrationMethod()
 Reg.SetMetricFixedMask(fixed_image_mask)
 Reg.SetMetricMovingMask(moving_image_mask)
+Reg.SetMetricSamplingPercentage(.9)
+Reg.SetMetricSamplingStrategy(sitk.ImageRegistrationMethod.REGULAR)
 
 # Reg.SetMetricAsCorrelation()
 Reg.SetMetricAsMattesMutualInformation(numberOfHistogramBins = 50)
@@ -148,13 +150,14 @@ Reg.SetOptimizerScales([stepSize,stepSize,stepSize,1.0,1.0,1.0])
 
 # Set the Euler3DTransform
 euler_trans=sitk.Euler3DTransform(sitk.CenteredTransformInitializer(fixed_image_mask,moving_image_mask,sitk.Euler3DTransform()))
+sitk.WriteTransform(euler_trans,filepath_euler_trans)
 
 # Set, Execute & write
 Reg.SetInitialTransform(euler_trans,inPlace=True)
 Reg.AddCommand(sitk.sitkIterationEvent, lambda: command_iteration(Reg))
 Reg.Execute(fixed_image, moving_image)
 
-sitk.WriteTransform(euler_trans,filepath_euler_trans)
+
 
 # get image volume
 resampler = sitk.ResampleImageFilter()
